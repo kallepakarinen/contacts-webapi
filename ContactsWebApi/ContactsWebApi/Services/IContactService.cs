@@ -2,10 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ContactsWebApi.Models;
 
 namespace ContactsWebApi.Services
 {
-    interface ContactService
+    public interface IContactService
     {
+        List<Contact> GetContacts();
+        Contact GetContactByID(int id);
+        Contact CreateContact(Contact contact);
+        Contact UpdateContact(int id, Contact contact);
+        void DeleteContact(int id);
     }
 }
