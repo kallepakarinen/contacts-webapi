@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ContactsWebApi.Controllers;
+using ContactsWebApi.Models;
 using ContactsWebApi.Repositories;
 using ContactsWebApi.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -27,14 +29,30 @@ namespace ContactsWebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AzureSettings>(Configuration.GetSection("AzureSettings"));
+            services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<IContactService, ContactService>();
             services.AddScoped<IContactRepository, ContactRepository>();
             services.AddDbContext<Models.ContactsDbContext>(options =>
             {
-                options.UseSqlServer(Configuration["LocalDbConnection"]);
+                // use azuredb === ["ContactsDbConnection"]
+                // use adminazuredb === ["ContactsDbAdminConection"]   
+                options.UseSqlServer(Configuration["ContactsDbConnection"]);
             });
             services.AddCors(options => options.AddPolicy("AllowAnyPolicy",
                 Builder => { Builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); }));
+
+            // Configure Authentication
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+                .AddJwtBearer(options =>
+                {
+                    options.Audience = Configuration["AzureSettings:ApplicationId"];
+                    options.Authority = Configuration["AzureSettings:LoginUrl"] + Configuration["AzureSettings:DirectoryId"];
+                });
 
             services.AddMvc();
         }
@@ -47,6 +65,8 @@ namespace ContactsWebApi
                 app.UseDeveloperExceptionPage();
             }
             app.UseCors("AllowAnyPolicy");
+            app.UseAuthentication();
+
             app.UseMvc();
         }
     }
